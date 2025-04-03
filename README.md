@@ -1,7 +1,5 @@
-# Grupo-4-POO-
-Grupo 4 POO
-Grupo 4 de POO 
-Tema: Analsis de Red y del Computador
+# Grupo-4-POO
+# Tema: Analsis de Red y del Computador
 # Objetivos Secundarios: 
     1. Análisis de tráfico en tiempo real
     2. Monitor de ancho de banda por dispositivo
