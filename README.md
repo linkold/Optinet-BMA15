@@ -5,14 +5,14 @@ El propósito de este proyecto es desarrollar un software con interfaz gráfica 
 
 El sistema ofrecerá herramientas especializadas para recopilar información clave sobre la conectividad, tráfico y seguridad de la red, permitiendo una supervisión más eficiente y una toma de decisiones basada en datos en tiempo real.
 # Objetivos Secundarios: 
-    1. Análisis de tráfico en tiempo real
-    2. Monitor de ancho de banda por dispositivo
-    3. Detector de dispositivos "fantasma" en la red
-    4. Sistema de detección de ataques (IDS básico)
-    5. Bot de auto-diagnóstico de red
-    6. Analizador de Wi-Fi (canales, señal, interferencias)
+1. Análisis de tráfico en tiempo real
+2. Monitor de ancho de banda por dispositivo
+3. Detector de dispositivos "fantasma" en la red
+4. Sistema de detección de ataques (IDS básico)
+5. Bot de auto-diagnóstico de red
+6. Analizador de Wi-Fi (canales, señal, interferencias)
 # Participantes:
-    ●	Callupe Menejes Camilo Roger
-    ●	Chagua Bustos Lincoln Haziel
-    ●	Gamarra Cruz Diego Orlando
-    ●	Suica Rojas Victor Manuel
+●	Callupe Menejes Camilo Roger
+●	Chagua Bustos Lincoln Haziel
+●	Gamarra Cruz Diego Orlando
+●	Suica Rojas Victor Manuel
