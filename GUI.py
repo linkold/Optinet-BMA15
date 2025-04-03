@@ -5,8 +5,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, QV
 from PyQt6.QtGui import QFont, QAction
 from PyQt6.QtCore import Qt
 
-
-"""Para ejecutar el codigo nesecitaras las librerias
+"""
+    Para ejecutar el codigo nesecitaras las librerias
     pip install PyQt6    
 """
 
