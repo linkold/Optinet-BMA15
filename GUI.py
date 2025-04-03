@@ -5,7 +5,12 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, QV
 from PyQt6.QtGui import QFont, QAction
 from PyQt6.QtCore import Qt
 
-estado = "bet1a"
+
+"""Para ejecutar el codigo nesecitaras las librerias
+    pip install PyQt6    
+"""
+
+estado = "beta"
 class OptiNet(QMainWindow):
     def __init__(self):
         super().__init__()
