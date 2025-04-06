@@ -1,0 +1,5 @@
+pyqt6
+python-nmap
+psutil
+scapy
+netifaces
