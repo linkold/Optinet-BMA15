@@ -306,7 +306,10 @@ class OptiNet(QMainWindow):
         self.tabla1.setRowCount(len(red1))
         for linea, red in enumerate(red1):
             self.tabla1.setItem(linea, 0, QTableWidgetItem(red["SSID"]))
-            self.tabla1.setItem(linea, 1, QTableWidgetItem(red["Intensidad"]))
+            try:
+                self.tabla1.setItem(linea, 1, QTableWidgetItem(str(red["Intensidad"])))
+            except Exception:
+                self.tabla1.setItem(linea, 1, QTableWidgetItem("N/A"))
             self.tabla1.setItem(linea, 2, QTableWidgetItem(red["Canal"]))
             self.tabla1.setItem(linea, 3, QTableWidgetItem(f"{red["Banda"]}GHz"))
             self.tabla1.setItem(linea, 4, QTableWidgetItem(red["Seguridad"]))
