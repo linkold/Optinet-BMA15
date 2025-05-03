@@ -10,6 +10,10 @@ import psutil
 import subprocess
 #from scapy.all import ARP, Ether, srp, get_if_list, get_if_addr
 import pyqtgraph as pg
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+
+
 cantidad_dispositivos = 0
 dispositivos = []  
 estado = ""
@@ -308,7 +312,21 @@ class OptiNet(QMainWindow):
             self.tabla1.setItem(linea, 4, QTableWidgetItem(red["Seguridad"]))
             self.tabla1.setItem(linea, 5, QTableWidgetItem(red["MAC"]))
             self.tabla1.setItem(linea, 6, QTableWidgetItem(red["Wi-fi"]))
-        
+            
+        self.figura, self.x1 = plt.subplots()
+        self.canvas = FigureCanvas(self.figura)
+        self.figura.patch.set_facecolor('black')
+        self.x1.set_facecolor('black')           
+        ssids = [red["SSID"] for red in red1]
+        intensidades = [int(red["Intensidad"].replace("%", "")) for red in red1]
+        self.x1.barh(ssids, intensidades, color='white')
+        self.x1.set_xlabel("Intensidad (%)", color='white')
+        self.x1.set_title("Redes Wi-Fi disponibles", color='white')
+        self.x1.tick_params(axis='x', colors='white')
+        self.x1.tick_params(axis='y', colors='white')
+        for i, v in enumerate(intensidades):
+            self.x1.text(v + 1, i, f"{v}%", va='center', color='white')
+            
         label1 = QLabel()
         label1.setFont(QFont("Arial",20))
         label1.setText("Redes Disponibles en el entorno")
@@ -325,16 +343,11 @@ class OptiNet(QMainWindow):
         lay.addWidget(label1_1)
         lay.addWidget(label1_2)
         label.setLayout(lay)
-        
-        self.x = list(range(60))
-        self.y_cpu = [0] * 60    
-        self.y_ram = [0] * 60    
-        
-        self.cpu = pg.PlotWidget(title="SSID vs Intesidad Senal")
-        
+
         
         self.ram = pg.PlotWidget(title="SSID vs Canal")
-        layoutH2.addWidget(self.ram)
+        
+        layoutH2.addWidget(self.canvas)
         layoutH2.addWidget(self.cpu)
         layoutH2.addWidget(label)
         
@@ -460,8 +473,9 @@ class OptiNet(QMainWindow):
             self.estado_internet.setText("No esta Conectado\na internet ❌")
             self.internet_estado_label.setText("No esta Conectado\na Internet ❌")
             
-        self.tabla1.setRowCount(len(datos_variantes.wifi_datos_windows()))
-        for linea, red in enumerate(datos_variantes.wifi_datos_windows()):
+        red1 = datos_variantes.wifi_datos_windows()
+        self.tabla1.setRowCount(len(red1))
+        for linea, red in enumerate(red1):
             self.tabla1.setItem(linea, 0, QTableWidgetItem(red["SSID"]))
             self.tabla1.setItem(linea, 1, QTableWidgetItem(red["Intensidad"]))
             self.tabla1.setItem(linea, 2, QTableWidgetItem(red["Canal"]))
@@ -470,6 +484,27 @@ class OptiNet(QMainWindow):
             self.tabla1.setItem(linea, 5, QTableWidgetItem(red["MAC"]))
             self.tabla1.setItem(linea, 6, QTableWidgetItem(red["Wi-fi"]))
             
+        self.x1.clear()
+        
+        self.figura.patch.set_facecolor('black')
+        self.x1.set_facecolor('black') 
+        
+        ssids = [red["SSID"] for red in red1]
+        intensidades = [int(red["Intensidad"].replace("%", "")) for red in red1]
+        
+        self.x1.barh(ssids, intensidades, color='white')
+        #self.x1.set_xlabel("Intensidad (%)", color='white', labelpad=30)
+        
+        self.x1.tick_params(axis='x', colors='white', labelsize = 10)
+        self.x1.tick_params(axis='y', colors='white', labelsize = 10)
+        
+        self.figura.tight_layout()
+        self.figura.canvas.draw()
+        
+        for i, v in enumerate(intensidades):
+            self.x1.text(v + 1, i, f"{v}%", va='center', color='white')
+        
+        
     def actualizar_tabla_cpu(self):
         self.y_cpu = self.y_cpu[1:] + [self.cpu_uso]  # desliza los valores
         self.curva1.setData(self.x, self.y_cpu)
