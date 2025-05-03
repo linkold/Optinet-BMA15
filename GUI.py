@@ -10,10 +10,15 @@ import psutil
 import subprocess
 #from scapy.all import ARP, Ether, srp, get_if_list, get_if_addr
 import pyqtgraph as pg
+
+
+import pywifi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
-import speedtest
-import pywifi
+
+
+import socket
+import os
 
 cantidad_dispositivos = 0
 dispositivos = []  
@@ -296,6 +301,11 @@ class OptiNet(QMainWindow):
         lay1.addLayout(lay3,3)
         return pagina
     def wifi(self):
+        
+        # pywifi
+        # matplotlib 
+
+
         self.cantidad_2_4g = 0
         self.cantidad_5g = 0
         self.wifi_5_6 = 0
@@ -304,18 +314,18 @@ class OptiNet(QMainWindow):
         self.tabla1 = QTableWidget(self)
         self.tabla1.setColumnCount(7)
         self.tabla1.setHorizontalHeaderLabels(["SSID","Intensidad de señal","Canal","Banda","Tipo de Seguridad","Direccion MAC","tipo Wi-Fi"])
-        self.tabla1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        
+
         red1 = datos_variantes.wifi_datos_windows()
         self.tabla1.setRowCount(len(red1))
         for linea, red in enumerate(red1):
-            self.tabla1.setItem(linea, 0, QTableWidgetItem(red["SSID"]))
-            self.tabla1.setItem(linea, 1, QTableWidgetItem(str(red["Intensidad"])))
-            self.tabla1.setItem(linea, 2, QTableWidgetItem(red["Canal"]))
-            self.tabla1.setItem(linea, 3, QTableWidgetItem(f"{red["Banda"]}GHz"))
-            self.tabla1.setItem(linea, 4, QTableWidgetItem(red["Seguridad"]))
-            self.tabla1.setItem(linea, 5, QTableWidgetItem(red["MAC"]))
-            self.tabla1.setItem(linea, 6, QTableWidgetItem(red["Wi-fi"]))
+            self.tabla1.setItem(linea, 0, QTableWidgetItem(red.get("SSID", "Desconocido")))
+            self.tabla1.setItem(linea, 1, QTableWidgetItem(str(red.get("Intensidad", "N/A"))))
+            self.tabla1.setItem(linea, 2, QTableWidgetItem(red.get("Canal", "-")))
+            self.tabla1.setItem(linea, 3, QTableWidgetItem(f"{red.get('Banda', '?')}GHz"))
+            self.tabla1.setItem(linea, 4, QTableWidgetItem(red.get("Seguridad", "¿?")))
+            self.tabla1.setItem(linea, 5, QTableWidgetItem(red.get("MAC", "¿?")))
+            self.tabla1.setItem(linea, 6, QTableWidgetItem(red.get("Wi-fi", "¿?")))
+
             if str(red["Canal"]) == "5GHz":
                 self.cantidad_5g +=1
             if str(red["Canal"]) == "2.4GHz":
@@ -329,7 +339,7 @@ class OptiNet(QMainWindow):
         self.x1.set_facecolor('black')           
         ssids = [red["SSID"] for red in red1]
         
-        intensidades = [int(red["Intensidad"].replace("%", "")) for red in red1]
+        intensidades = [int(red.get("Intensidad", "0%").replace("%", "")) for red in red1]
         self.x1.barh(ssids, intensidades, color='white')
         
         self.x1.set_xlabel("Intensidad (%)", color='white')
@@ -362,7 +372,7 @@ class OptiNet(QMainWindow):
         #lay.addWidget(label1_2)
         label.setLayout(lay)
 
-
+        self.tabla1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         
         layoutH2.addWidget(self.canvas)
         layoutH2.addWidget(label)
@@ -373,35 +383,76 @@ class OptiNet(QMainWindow):
         lay1.addLayout(laymain)
         datos_variantes.wifi_datos_windows()
         return pagina
+    
     def ancho_banda(self):
-        self.estado_boton_actualzizar_banda = "Actualizar"
-        
         pagina = QWidget()
-        lay1 = QVBoxLayout(pagina)                
-        titulo = QLabel("Control de Ancho de Banda")
-        titulo.setFont(QFont("Arial",20))
-        
-        boton = QPushButton(self.estado_boton_actualzizar_banda)
-        boton.setSizePolicy(QSizePolicy.Policy.Preferred,QSizePolicy.Policy.Preferred)
-        self.tabla_dispositivos2 = QTableWidget(self)
-        self.tabla_dispositivos2.setColumnCount(7)
-        self.tabla_dispositivos2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.tabla_dispositivos2.setHorizontalHeaderLabels(["IP","MAC","Velocidad de Bajada","Velocidad Subida","Nombre","Total Usado","%Red"])
-        
-        #grafica provisional 
-        self.x = list(range(60)) 
-        self.y_cpu = [0] * 60     
-        
-        self.cpu = pg.PlotWidget(title="IP vs %Red")
-        lay2 = QHBoxLayout()
-        lay2.addWidget(self.cpu)
-        
-        lay1.addWidget(titulo)
-        lay1.addWidget(self.tabla_dispositivos2,3)
-        lay1.addWidget(boton)
-        lay1.addLayout(lay2,2)
-        lay1.setAlignment(titulo,Qt.AlignmentFlag.AlignHCenter)
+        layout_principal = QVBoxLayout(pagina)
+
+        titulo = QLabel("Monitoreo de Ancho de Banda")
+        titulo.setFont(QFont("Arial", 20))
+        layout_principal.addWidget(titulo, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.tabla = QTableWidget()
+        self.tabla.setColumnCount(7)
+        self.tabla.setHorizontalHeaderLabels([
+            "IP", "MAC", "Velocidad de Bajada", "Velocidad de Subida", "Nombre", "Total Usado", "%Red"
+        ])
+        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout_principal.addWidget(self.tabla)
+
+        boton = QPushButton("Actualizar")
+        boton.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        boton.clicked.connect(self.actualizar_datos_ancho_banda)
+        layout_principal.addWidget(boton)
+
+        self.grafico = pg.PlotWidget(title="Uso de Red (%)")
+        self.grafico.setBackground('k')
+        self.grafico.showGrid(x=True, y=True)
+        self.grafico.setYRange(0, 100)
+        self.grafico.setXRange(0, 2)
+        layout_principal.addWidget(self.grafico)
+
         return pagina
+
+    def medir_ancho_banda(self, intervalo=1.0):
+        net1 = psutil.net_io_counters()
+        enviados_antes = net1.bytes_sent
+        recibidos_antes = net1.bytes_recv
+
+        import time
+        time.sleep(intervalo)
+
+        net2 = psutil.net_io_counters()
+        enviados_despues = net2.bytes_sent
+        recibidos_despues = net2.bytes_recv
+
+        subida = (enviados_despues - enviados_antes) * 8 / intervalo / 1024  # kbps
+        bajada = (recibidos_despues - recibidos_antes) * 8 / intervalo / 1024  # kbps
+
+        return round(bajada, 2), round(subida, 2)
+
+    def actualizar_datos_ancho_banda(self):
+        bajada, subida = self.medir_ancho_banda()
+        ip = socket.gethostbyname(socket.gethostname())
+        nombre = socket.gethostname()
+
+        self.tabla.setRowCount(1)
+        self.tabla.setItem(0, 0, QTableWidgetItem(ip))
+        self.tabla.setItem(0, 1, QTableWidgetItem("00:00:00:00:00:00"))
+        self.tabla.setItem(0, 2, QTableWidgetItem(f"{bajada} kbps"))
+        self.tabla.setItem(0, 3, QTableWidgetItem(f"{subida} kbps"))
+        self.tabla.setItem(0, 4, QTableWidgetItem(nombre))
+        self.tabla.setItem(0, 5, QTableWidgetItem(f"{bajada + subida:.2f} kbps"))
+        self.tabla.setItem(0, 6, QTableWidgetItem("100%"))
+
+        self.grafico.clear()
+        self.grafico.plot([0, 1], [0, 100], pen=None, symbol='o', symbolBrush='g')
+        self.grafico.setTitle("Uso de Red (%)", color='w')
+        self.grafico.getAxis("bottom").setPen(pg.mkPen(color='w'))
+        self.grafico.getAxis("left").setPen(pg.mkPen(color='w'))
+        self.grafico.getAxis("left").setTextPen(pg.mkPen(color='w'))
+        self.grafico.getAxis("bottom").setTextPen(pg.mkPen(color='w'))
+    
     def reporte(self):
         pagina = QWidget()
         lay1 = QVBoxLayout(pagina)
@@ -455,8 +506,6 @@ class OptiNet(QMainWindow):
     def actualizador(self):
         timer = QTimer(self)
         timer.timeout.connect(self.actualizar_informacion)
-        timer.timeout.connect(self.actualizar_tabla_cpu)
-        timer.timeout.connect(self.actualizar_tabla_ram)
         timer.start(1000)
         
     def actualizar_informacion(self):
@@ -532,17 +581,17 @@ class OptiNet(QMainWindow):
         
         self.label1_1.setText(f"Redes Detectadas: {len(red1)}")
         
-    def actualizar_tabla_cpu(self):
         self.y_cpu = self.y_cpu[1:] + [self.cpu_uso]  # desliza los valores
         self.curva1.setData(self.x, self.y_cpu)
         wifi = pywifi.PyWiFi()
         iface = wifi.interfaces()[0]
         iface.scan()
-    
-    def actualizar_tabla_ram(self):
+        
         ram_usada_porcentaje = (self.ram_usada*100)/self.ram_total
         self.y_ram = self.y_ram[1:] + [ram_usada_porcentaje]  # desliza los valores
         self.curva2.setData(self.x, self.y_ram)
+        
+        
         
 
 class datos_variantes:
@@ -624,9 +673,9 @@ class datos_variantes:
                     red["SSID"] = "Red Oculta"
                 else:
                     red["SSID"] = linea.split(":",1)[1].strip()
-            elif "Signal" in linea:
+            elif "Signal" in linea or "Intensidad de la señal" in linea:
                 red["Intensidad"] = linea.split(":",1)[1].strip()
-            elif "Channel            " in linea:
+            elif "Channel       " in linea or "Canal        " in linea:
                 try:
                     red["Canal"] = canales_rango_4G[linea.split(":",1)[1].split()[0]]
                 except:
@@ -635,13 +684,13 @@ class datos_variantes:
                     except:
                         red["Canal"] = str(linea.split(":",1)[1].split()[0])
                         
-            elif "Band" in linea:
+            elif "Band" in linea or "Banda" in linea:
                 red["Banda"] = str(linea.split(":",1)[1].split()[0])
-            elif "Authentication" in linea:
+            elif "Authentication" in linea or "Autenticación" in linea:
                 red["Seguridad"] = linea.split(":",1)[1].split()[0]
             elif "BSSID 1" in linea:
                 red["MAC"] = linea.split(":",1)[1].split()[0]
-            elif "Radio type" in linea:
+            elif "Radio type" in linea or "Tipo de radio" in linea:
                 try:
                     red['Wi-fi'] = radio_tipos[linea.split(":",1)[1].split()[0]]
                 except Exception:
