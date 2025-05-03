@@ -12,7 +12,8 @@ import subprocess
 import pyqtgraph as pg
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
-
+import speedtest
+import pywifi
 
 cantidad_dispositivos = 0
 dispositivos = []  
@@ -295,6 +296,9 @@ class OptiNet(QMainWindow):
         lay1.addLayout(lay3,3)
         return pagina
     def wifi(self):
+        self.cantidad_2_4g = 0
+        self.cantidad_5g = 0
+        self.wifi_5_6 = 0
         pagina = QWidget()
         lay1 = QVBoxLayout(pagina)
         self.tabla1 = QTableWidget(self)
@@ -306,30 +310,35 @@ class OptiNet(QMainWindow):
         self.tabla1.setRowCount(len(red1))
         for linea, red in enumerate(red1):
             self.tabla1.setItem(linea, 0, QTableWidgetItem(red["SSID"]))
-            try:
-                self.tabla1.setItem(linea, 1, QTableWidgetItem(str(red["Intensidad"])))
-            except Exception:
-                self.tabla1.setItem(linea, 1, QTableWidgetItem("N/A"))
+            self.tabla1.setItem(linea, 1, QTableWidgetItem(str(red["Intensidad"])))
             self.tabla1.setItem(linea, 2, QTableWidgetItem(red["Canal"]))
             self.tabla1.setItem(linea, 3, QTableWidgetItem(f"{red["Banda"]}GHz"))
             self.tabla1.setItem(linea, 4, QTableWidgetItem(red["Seguridad"]))
             self.tabla1.setItem(linea, 5, QTableWidgetItem(red["MAC"]))
             self.tabla1.setItem(linea, 6, QTableWidgetItem(red["Wi-fi"]))
+            if str(red["Canal"]) == "5GHz":
+                self.cantidad_5g +=1
+            if str(red["Canal"]) == "2.4GHz":
+                self.cantidad_2_4g += 1
+            if str(red["Wi-fi"]) == "Wi-Fi 5" or "Wi-Fi 6":
+                self.wifi_5_6 += 1
             
         self.figura, self.x1 = plt.subplots()
         self.canvas = FigureCanvas(self.figura)
         self.figura.patch.set_facecolor('black')
         self.x1.set_facecolor('black')           
         ssids = [red["SSID"] for red in red1]
+        
         intensidades = [int(red["Intensidad"].replace("%", "")) for red in red1]
         self.x1.barh(ssids, intensidades, color='white')
+        
         self.x1.set_xlabel("Intensidad (%)", color='white')
         self.x1.set_title("Redes Wi-Fi disponibles", color='white')
         self.x1.tick_params(axis='x', colors='white')
         self.x1.tick_params(axis='y', colors='white')
         for i, v in enumerate(intensidades):
             self.x1.text(v + 1, i, f"{v}%", va='center', color='white')
-            
+        
         label1 = QLabel()
         label1.setFont(QFont("Arial",20))
         label1.setText("Redes Disponibles en el entorno")
@@ -341,22 +350,26 @@ class OptiNet(QMainWindow):
         
         label = QGroupBox("Informacion")
         lay = QVBoxLayout()
-        label1_1 = QLabel("Redes Detectadas: 12")
-        label1_2 = QLabel("Sugerencias\t\t\t")
-        lay.addWidget(label1_1)
-        lay.addWidget(label1_2)
+        self.label1_1 = QLabel(f"Redes Detectadas: {len(red1)}")
+        self.label1_2 = QLabel(f"Redes En 2.4GHz: {self.cantidad_2_4g}")
+        self.label1_3 = QLabel(f"Redes En 5GHz: {self.cantidad_5g}")
+        self.label1_4 = QLabel(f"Redes con Wifi 5/6: {self.wifi_5_6}")
+        #label1_2 = QLabel("Sugerencias\t\t\t")
+        lay.addWidget(self.label1_1)
+        lay.addWidget(self.label1_2)
+        lay.addWidget(self.label1_3)
+        lay.addWidget(self.label1_4)
+        #lay.addWidget(label1_2)
         label.setLayout(lay)
 
-        
-        self.ram = pg.PlotWidget(title="SSID vs Canal")
+
         
         layoutH2.addWidget(self.canvas)
-        layoutH2.addWidget(self.cpu)
         layoutH2.addWidget(label)
         
         laymain = QVBoxLayout()
         laymain.addLayout(layoutH1,3)
-        laymain.addLayout(layoutH2, 1)
+        laymain.addLayout(layoutH2, 2)
         lay1.addLayout(laymain)
         datos_variantes.wifi_datos_windows()
         return pagina
@@ -478,15 +491,26 @@ class OptiNet(QMainWindow):
             
         red1 = datos_variantes.wifi_datos_windows()
         self.tabla1.setRowCount(len(red1))
+        self.cantidad_2_4g = 0
+        self.cantidad_5g = 0
+        self.wifi_5_6 = 0
         for linea, red in enumerate(red1):
             self.tabla1.setItem(linea, 0, QTableWidgetItem(red["SSID"]))
-            self.tabla1.setItem(linea, 1, QTableWidgetItem(red["Intensidad"]))
+            self.tabla1.setItem(linea, 1, QTableWidgetItem(str(red["Intensidad"])))
             self.tabla1.setItem(linea, 2, QTableWidgetItem(red["Canal"]))
             self.tabla1.setItem(linea, 3, QTableWidgetItem(f"{red["Banda"]}GHz"))
             self.tabla1.setItem(linea, 4, QTableWidgetItem(red["Seguridad"]))
             self.tabla1.setItem(linea, 5, QTableWidgetItem(red["MAC"]))
             self.tabla1.setItem(linea, 6, QTableWidgetItem(red["Wi-fi"]))
-            
+            if red["Banda"] == "5":
+                self.cantidad_5g +=1
+            if red["Banda"] == "2.4":
+                self.cantidad_2_4g += 1
+            if red["Wi-fi"] in ["Wi-Fi 5", "Wi-Fi 6"]:
+                self.wifi_5_6 += 1
+        self.label1_2.setText(f"Redes En 2.4GHz: {self.cantidad_2_4g}")
+        self.label1_3.setText(f"Redes En 5GHz: {self.cantidad_5g}")
+        self.label1_4.setText(f"Redes con Wifi 5/6: {self.wifi_5_6}")
         self.x1.clear()
         
         self.figura.patch.set_facecolor('black')
@@ -496,7 +520,6 @@ class OptiNet(QMainWindow):
         intensidades = [int(red["Intensidad"].replace("%", "")) for red in red1]
         
         self.x1.barh(ssids, intensidades, color='white')
-        #self.x1.set_xlabel("Intensidad (%)", color='white', labelpad=30)
         
         self.x1.tick_params(axis='x', colors='white', labelsize = 10)
         self.x1.tick_params(axis='y', colors='white', labelsize = 10)
@@ -507,16 +530,21 @@ class OptiNet(QMainWindow):
         for i, v in enumerate(intensidades):
             self.x1.text(v + 1, i, f"{v}%", va='center', color='white')
         
+        self.label1_1.setText(f"Redes Detectadas: {len(red1)}")
         
     def actualizar_tabla_cpu(self):
         self.y_cpu = self.y_cpu[1:] + [self.cpu_uso]  # desliza los valores
         self.curva1.setData(self.x, self.y_cpu)
+        wifi = pywifi.PyWiFi()
+        iface = wifi.interfaces()[0]
+        iface.scan()
     
     def actualizar_tabla_ram(self):
         ram_usada_porcentaje = (self.ram_usada*100)/self.ram_total
         self.y_ram = self.y_ram[1:] + [ram_usada_porcentaje]  # desliza los valores
         self.curva2.setData(self.x, self.y_ram)
         
+
 class datos_variantes:
     
     def conectado():
@@ -600,7 +628,7 @@ class datos_variantes:
                 red["Intensidad"] = linea.split(":",1)[1].strip()
             elif "Channel            " in linea:
                 try:
-                    red["Canal"] = canales_rango_4G[str(linea.split(":",1)[1].split()[0])]
+                    red["Canal"] = canales_rango_4G[linea.split(":",1)[1].split()[0]]
                 except:
                     try:
                         red["Canal"] = canales_rango_5G[str(linea.split(":",1)[1].split()[0])]
@@ -608,7 +636,7 @@ class datos_variantes:
                         red["Canal"] = str(linea.split(":",1)[1].split()[0])
                         
             elif "Band" in linea:
-                red["Banda"] = linea.split(":",1)[1].split()[0]
+                red["Banda"] = str(linea.split(":",1)[1].split()[0])
             elif "Authentication" in linea:
                 red["Seguridad"] = linea.split(":",1)[1].split()[0]
             elif "BSSID 1" in linea:
