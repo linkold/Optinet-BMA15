@@ -10,14 +10,11 @@ import psutil
 import subprocess
 #from scapy.all import ARP, Ether, srp, get_if_list, get_if_addr
 import pyqtgraph as pg
-
-
 cantidad_dispositivos = 0
 dispositivos = []  
 estado = ""
 ip_adaptador = ""
 ip_escaneadas = []  # Variable global para almacenar todas las IPs escaneadas
-
 class OptiNet(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -26,7 +23,6 @@ class OptiNet(QMainWindow):
         self.UI()
         self.show()
         self.actualizador()
-
     def UI(self):
         menu = self.menuBar()
         menu.setStyleSheet("background-color: black;")
@@ -55,7 +51,7 @@ class OptiNet(QMainWindow):
         
         self.estado_internet = QLabel()
         self.estado_internet.setFont(QFont("Arial",15))
-        if conectado():
+        if datos_variantes.conectado():
             self.estado_internet.setText("Esta Conectado\na internet ✅")
         else:
             self.estado_internet.setText("No esta Conectado\na internet ❌")
@@ -67,7 +63,6 @@ class OptiNet(QMainWindow):
         boton_ancho_banda = Boton("Ancho de Banda")
         boton_reporte = Boton("Reportes")
         boton_control_parental = Boton("Control Parental")
-
         barra_lat.addWidget(boton_principal)
         barra_lat.addWidget(boton_trafico)
         barra_lat.addWidget(boton_dispositivos)
@@ -86,7 +81,6 @@ class OptiNet(QMainWindow):
         self.pagina_ancho_banda = self.ancho_banda()
         self.pagina_reporte = self.reporte()
         self.pagina_control_parental = self.control_parental()
-
         for pagina in [self.pagina_principal, self.pagina_trafico, self.pagina_dispositivos, self.pagina_wifi, self.pagina_ancho_banda, self.pagina_reporte, self.pagina_control_parental]:
             self.stack.addWidget(pagina)
         
@@ -102,7 +96,6 @@ class OptiNet(QMainWindow):
         main_layout.addWidget(self.stack, 6)
         
         self.setCentralWidget(main_widget)
-
     def principal(self):
         pagina = QWidget()
         laymain = QVBoxLayout(pagina)
@@ -110,16 +103,13 @@ class OptiNet(QMainWindow):
         tamano_letra_principal_menor = 15
         tamano_letra_principal_mayor = 20
         fuente_letra = "Arial"
-
         # Título
         label_titulo1 = QLabel("Bienvenido a Optinet")
         label_titulo1.setFont(QFont(fuente_letra, 25))
         lay1.addWidget(label_titulo1)
         lay1.setAlignment(label_titulo1, Qt.AlignmentFlag.AlignCenter)
-
         # Analisis del Computador
         layout_info = QHBoxLayout()
-
         # --- RAM ---
         
         mem = psutil.virtual_memory()
@@ -137,7 +127,6 @@ class OptiNet(QMainWindow):
         grupo1_layout.addWidget(self.Ram_uso_label)
         grupo1_layout.addWidget(self.Ram_total_label)
         grupo1.setLayout(grupo1_layout)
-
         # --- CPU ---
         cpu_uso = psutil.cpu_percent(interval=1)
         self.Cpu_uso_label = QLabel(f"Uso actual: {cpu_uso}%")
@@ -152,14 +141,18 @@ class OptiNet(QMainWindow):
         grupo2_layout.addWidget(self.Cpu_uso_label)
         grupo2_layout.addWidget(self.Cpu_nucleos_label)
         grupo2.setLayout(grupo2_layout)
-
         # --- Disco ---
         
         disco_total = disco_usado = 0
         for part in psutil.disk_partitions():
-            usage = psutil.disk_usage(part.mountpoint)
-            disco_total += usage.total
-            disco_usado += usage.used
+            try:
+                usage = psutil.disk_usage(part.mountpoint)
+                disco_total += usage.total
+                disco_usado += usage.used
+            except Exception:
+                pass
+        self.disco_total_label = QLabel(f"Total: {round(disco_total / (1024 ** 3), 2)} GB")
+        self.disco_usado_label = QLabel(f"Usado: {round(disco_usado / (1024 ** 3), 2)} GB")
         self.disco_total_label = QLabel(f"Total: {round(disco_total / (1024 ** 3), 2)} GB")
         self.disco_usado_label = QLabel(f"Usado: {round(disco_usado / (1024 ** 3), 2)} GB")
         
@@ -172,26 +165,26 @@ class OptiNet(QMainWindow):
         grupo3_layout.addWidget(self.disco_total_label)
         grupo3_layout.addWidget(self.disco_usado_label)
         grupo3.setLayout(grupo3_layout)
-
-        # --- Batería ---
-        bateria = psutil.sensors_battery()
-        self.bateria_porcentaje_label = QLabel(f"Porcentaje: {bateria.percent}%")
-        self.bateria_estado_label = QLabel("Cargando" if bateria.power_plugged else "No Cargando")
-        
+        ## --- Batería ---
+        try:
+            bateria = psutil.sensors_battery()
+            self.bateria_porcentaje_label = QLabel(f"Porcentaje: {bateria.percent}%")
+            self.bateria_estado_label = QLabel("Cargando" if bateria.power_plugged else "No Cargando")
+        except Exception:
+            self.bateria_porcentaje_label = QLabel("No hay Hay bateria")
+            self.bateria_estado_label = QLabel("")
         self.bateria_estado_label.setFont(QFont(fuente_letra,tamano_letra_principal_menor))
         self.bateria_porcentaje_label.setFont(QFont(fuente_letra,tamano_letra_principal_menor))
-        
         grupo4 = QGroupBox("Batería")
         grupo4.setFont(QFont(fuente_letra,tamano_letra_principal_mayor))
         grupo4_layout = QVBoxLayout()
-        if bateria:
+        try:
             grupo4_layout.addWidget(self.bateria_porcentaje_label)
             grupo4_layout.addWidget(self.bateria_estado_label)
-        else:
-            grupo4_layout.addWidget(QLabel("No disponible"))
+        except Exception:
+            pass
         grupo4.setLayout(grupo4_layout)
-
-        # --- Conectividad ---
+        #--- Conectividad ---
         self.internet_estado_label = QLabel("Espere...")
         
         self.internet_estado_label.setFont(QFont("",tamano_letra_principal_menor))
@@ -213,14 +206,12 @@ class OptiNet(QMainWindow):
         
         self.ram = pg.PlotWidget(title="Uso del RAM (%)")
         self.curva2 = self.ram.plot(self.x, self.y_ram, pen=pg.mkPen('r', width=2))
-
         # Añadir todos los cuadros al layout principal
         layout_info.addWidget(grupo1)
         layout_info.addWidget(grupo2)
         layout_info.addWidget(grupo3)
         layout_info.addWidget(grupo4)
         layout_info.addWidget(grupo5)
-
         layout_graficas = QHBoxLayout()
         
         layout_graficas.addWidget(self.cpu)
@@ -230,7 +221,6 @@ class OptiNet(QMainWindow):
         laymain.addLayout(layout_info, 3)
         laymain.addLayout(layout_graficas,5)
         return pagina
-
     def trafico(self):
         pico_maximo_subida = "Sin Informacion" 
         pico_maximo_descarga = "Sin informacion"
@@ -252,7 +242,6 @@ class OptiNet(QMainWindow):
         
         
         maximos = QLabel(f"Pico Maximo Descarga:  {pico_maximo_descarga}\t\t||\t\tPico Maximo Subida:  {pico_maximo_subida}")
-
         self.tabla_dispositivos1 = QTableWidget(self)
         self.tabla_dispositivos1.setColumnCount(5)
         self.tabla_dispositivos1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -269,7 +258,6 @@ class OptiNet(QMainWindow):
         return pagina
     def dispositivos(self):
         global cantidad_dispositivos
-
         pagina = QWidget()
         lay1 = QVBoxLayout(pagina)
         lay2 = QVBoxLayout()
@@ -288,12 +276,10 @@ class OptiNet(QMainWindow):
         boton_actualizacion.setFont(QFont("Arial",20))
         boton_actualizacion.setSizePolicy(QSizePolicy.Policy.Preferred,QSizePolicy.Policy.Preferred)
         boton_actualizacion.clicked.connect(self.actualizar_tabla_dispositivos)
-
         self.tabla_dispositivos = QTableWidget(self)
         self.tabla_dispositivos.setColumnCount(2)
         self.tabla_dispositivos.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabla_dispositivos.setHorizontalHeaderLabels(["IP", "MAC"])
-
         registro = QPlainTextEdit()
         registro.setReadOnly(True)
         
@@ -307,21 +293,29 @@ class OptiNet(QMainWindow):
     def wifi(self):
         pagina = QWidget()
         lay1 = QVBoxLayout(pagina)
-
         self.tabla1 = QTableWidget(self)
-        self.tabla1.setColumnCount(6)
-        self.tabla1.setHorizontalHeaderLabels(["SSID","Intensidad de señal","Canal","Banda","Tipo de Seguridad","Direccion MAC"])
+        self.tabla1.setColumnCount(7)
+        self.tabla1.setHorizontalHeaderLabels(["SSID","Intensidad de señal","Canal","Banda","Tipo de Seguridad","Direccion MAC","tipo Wi-Fi"])
         self.tabla1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
+        
+        red1 = datos_variantes.wifi_datos_windows()
+        self.tabla1.setRowCount(len(red1))
+        for linea, red in enumerate(red1):
+            self.tabla1.setItem(linea, 0, QTableWidgetItem(red["SSID"]))
+            self.tabla1.setItem(linea, 1, QTableWidgetItem(red["Intensidad"]))
+            self.tabla1.setItem(linea, 2, QTableWidgetItem(red["Canal"]))
+            self.tabla1.setItem(linea, 3, QTableWidgetItem(f"{red["Banda"]}GHz"))
+            self.tabla1.setItem(linea, 4, QTableWidgetItem(red["Seguridad"]))
+            self.tabla1.setItem(linea, 5, QTableWidgetItem(red["MAC"]))
+            self.tabla1.setItem(linea, 6, QTableWidgetItem(red["Wi-fi"]))
+        
         label1 = QLabel()
         label1.setFont(QFont("Arial",20))
         label1.setText("Redes Disponibles en el entorno")
-
         layoutH1 = QVBoxLayout()
         layoutH1.addWidget(label1)
         layoutH1.addWidget(self.tabla1)
         layoutH1.setAlignment(label1, Qt.AlignmentFlag.AlignCenter)
-
         layoutH2 = QHBoxLayout()
         
         label = QGroupBox("Informacion")
@@ -340,9 +334,6 @@ class OptiNet(QMainWindow):
         
         
         self.ram = pg.PlotWidget(title="SSID vs Canal")
-
-
-
         layoutH2.addWidget(self.ram)
         layoutH2.addWidget(self.cpu)
         layoutH2.addWidget(label)
@@ -350,15 +341,14 @@ class OptiNet(QMainWindow):
         laymain = QVBoxLayout()
         laymain.addLayout(layoutH1,3)
         laymain.addLayout(layoutH2, 1)
-
         lay1.addLayout(laymain)
-
+        datos_variantes.wifi_datos_windows()
         return pagina
     def ancho_banda(self):
         self.estado_boton_actualzizar_banda = "Actualizar"
         
         pagina = QWidget()
-        lay1 = QVBoxLayout(pagina)
+        lay1 = QVBoxLayout(pagina)                
         titulo = QLabel("Control de Ancho de Banda")
         titulo.setFont(QFont("Arial",20))
         
@@ -374,11 +364,9 @@ class OptiNet(QMainWindow):
         self.y_cpu = [0] * 60     
         
         self.cpu = pg.PlotWidget(title="IP vs %Red")
-
         lay2 = QHBoxLayout()
         lay2.addWidget(self.cpu)
         
-
         lay1.addWidget(titulo)
         lay1.addWidget(self.tabla_dispositivos2,3)
         lay1.addWidget(boton)
@@ -398,9 +386,6 @@ class OptiNet(QMainWindow):
     def soporte(self):
         """abrir pagina de ayuda"""
         pass
-
-
-
     def control_parental(self):
         pagina = QWidget()
         lay1 = QVBoxLayout(pagina)
@@ -433,33 +418,11 @@ class OptiNet(QMainWindow):
         lay1.addWidget(boton_agregar)
         lay1.addWidget(boton_Eliminar)
         
-        
         return pagina
     
-    
-    
-    
     def actualizar_tabla_dispositivos(self):
-        global ip_adaptador
-        # Se actualiza el estado para mostrar "Cargando..."
-        self.label_estado.setText(f"Cargando...")
-
-        # Creamos un thread para escanear los dispositivos y evitar congelar la GUI
-        self.thread = DispositivosThread()
-        self.thread.dispositivos_actualizados.connect(self.actualizar_tabla)
-        self.thread.start()
-    def actualizar_tabla(self, dispositivos):
-        global cantidad_dispositivos
-        self.tabla_dispositivos.setRowCount(0)
-        for dispositivo in dispositivos:
-            row_position = self.tabla_dispositivos.rowCount()
-            self.tabla_dispositivos.insertRow(row_position)
-            self.tabla_dispositivos.setItem(row_position, 0, QTableWidgetItem(dispositivo[0]))
-            self.tabla_dispositivos.setItem(row_position, 1, QTableWidgetItem(dispositivo[1]))
-        
-        self.label_estado.setText(f"Actualizado\nIP : {ip_adaptador}")
-        self.label_info.setText(f"Informacion:\ndispositivos conectados: {len(dispositivos)}")
-        
+        pass
+    
     def actualizador(self):
         timer = QTimer(self)
         timer.timeout.connect(self.actualizar_informacion)
@@ -475,25 +438,37 @@ class OptiNet(QMainWindow):
         self.cpu_uso = psutil.cpu_percent(interval=0.1)
         self.Cpu_uso_label.setText(f"Uso actual: {self.cpu_uso}%")
         
-        disco_usado = 0
+        disco_total = 0
         for part in psutil.disk_partitions():
-            usage = psutil.disk_usage(part.mountpoint)
-            disco_usado += usage.used
-        self.disco_usado_label.setText(f"Usado: {round(disco_usado / (1024 ** 3), 2)} GB")
-        
-        bateria = psutil.sensors_battery()
-        self.bateria_porcentaje_label.setText(f"Porcentaje: {bateria.percent}%")
-        self.bateria_estado_label.setText("Cargando" if bateria.power_plugged else "No Cargando")
-        
-        if conectado():
+            try:
+                usage = psutil.disk_usage(part.mountpoint)
+                disco_usado += usage.used
+            except Exception:
+                pass
+        self.disco_total_label = QLabel(f"Total: {round(disco_total / (1024 ** 3), 2)} GB")
+        try:
+            bateria = psutil.sensors_battery()
+            self.bateria_porcentaje_label.setText(f"Porcentaje: {bateria.percent}%")
+            self.bateria_estado_label.setText("Cargando" if bateria.power_plugged else "No Cargando")
+            self.internet_estado_label.setText("No esta Conectado\na Internet ❌")
+        except Exception:
+            pass
+        if datos_variantes.conectado():
+            self.estado_internet.setText("Esta Conectado\na internet ✅")
             self.internet_estado_label.setText("Conectado a\nInternet ✅")
         else:
+            self.estado_internet.setText("No esta Conectado\na internet ❌")
             self.internet_estado_label.setText("No esta Conectado\na Internet ❌")
             
-        if conectado():
-            self.estado_internet.setText("Esta Conectado\na internet ✅")
-        else:
-            self.estado_internet.setText("No esta Conectado\na internet ❌")
+        self.tabla1.setRowCount(len(datos_variantes.wifi_datos_windows()))
+        for linea, red in enumerate(datos_variantes.wifi_datos_windows()):
+            self.tabla1.setItem(linea, 0, QTableWidgetItem(red["SSID"]))
+            self.tabla1.setItem(linea, 1, QTableWidgetItem(red["Intensidad"]))
+            self.tabla1.setItem(linea, 2, QTableWidgetItem(red["Canal"]))
+            self.tabla1.setItem(linea, 3, QTableWidgetItem(f"{red["Banda"]}GHz"))
+            self.tabla1.setItem(linea, 4, QTableWidgetItem(red["Seguridad"]))
+            self.tabla1.setItem(linea, 5, QTableWidgetItem(red["MAC"]))
+            self.tabla1.setItem(linea, 6, QTableWidgetItem(red["Wi-fi"]))
             
     def actualizar_tabla_cpu(self):
         self.y_cpu = self.y_cpu[1:] + [self.cpu_uso]  # desliza los valores
@@ -504,15 +479,115 @@ class OptiNet(QMainWindow):
         self.y_ram = self.y_ram[1:] + [ram_usada_porcentaje]  # desliza los valores
         self.curva2.setData(self.x, self.y_ram)
         
-def conectado():
+class datos_variantes:
+    
+    def conectado():
         try:
             salida = subprocess.run(["ping", "-n", "1", "google.com"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=2)
             return salida.returncode == 0
         except Exception:
-            return False
+            return False  
+        
+    def wifi_datos_windows():
+        resultado = subprocess.check_output("netsh wlan show networks mode=bssid", shell=True).decode("utf-8",errors="ignore")
+        lineas_1 = resultado.split("\n")
+        
+        lista = []
+        red = {}
+        
+        radio_tipos = {
+        "802.11a": "Wi-Fi 1",
+        "802.11b": "Wi-Fi 1",
+        "802.11g": "Wi-Fi 3",
+        "802.11n": "Wi-Fi 4",
+        "802.11ac": "Wi-Fi 5",
+        "802.11ax": "Wi-Fi 6",
+        "802.11be": "Wi-Fi 7"
+        }
+        canales_rango_4G = {
+            "1": "1 Rango(2401 MHz - 2423 MHz)",
+            "2": "2 Rango(2406 MHz - 2428 MHz)",
+            "3": "3 Rango(2411 MHz - 2433 MHz)",
+            "4": "4 Rango(2416 MHz - 2438 MHz)",
+            "5": "5 Rango(2421 MHz - 2443 MHz)",
+            "6": "6 Rango(2426 MHz - 2448 MHz)",
+            "7": "7 Rango(2431 MHz - 2453 MHz)",
+            "8": "8 Rango(2436 MHz - 2458 MHz)",
+            "9": "9 Rango(2441 MHz - 2463 MHz)",
+            "10": "10 Rango(2446 MHz - 2468 MHz)",
+            "11": "11 Rango(2451 MHz - 2473 MHz)",
+            "12": "12 Rango(2456 MHz - 2478 MHz)",
+            "13": "13 Rango(2461 MHz - 2483 MHz)",
+            "14": "14 Rango(2473 MHz - 2495 MHz)"
+        }
 
+        canales_rango_5G = {
+            "36": '36 Frecuencia 5180 MHz',
+            "40": '40 Frecuencia 5200 MHz',
+            "44": '44 Frecuencia 5220 MHz',
+            "48": '48 Frecuencia 5240 MHz',
+            "52": '52 Frecuencia 5260 MHz',
+            "56": '56 Frecuencia 5280 MHz',
+            "60": '60 Frecuencia 5300 MHz',
+            "64": '64 Frecuencia 5320 MHz',
+            "100": '100 Frecuencia 5500 MHz',
+            "104": '104 Frecuencia 5520 MHz',
+            "108": '108 Frecuencia 5540 MHz',
+            "112": '112 Frecuencia 5560 MHz',
+            "116": '116 Frecuencia 5580 MHz',
+            "120": '120 Frecuencia 5600 MHz',
+            "124": '124 Frecuencia 5620 MHz',
+            "128": '128 Frecuencia 5640 MHz',
+            "132": '132 Frecuencia 5660 MHz',
+            "136": '136 Frecuencia 5680 MHz',
+            "140": '140 Frecuencia 5700 MHz',
+            "144": '144 Frecuencia 5720 MHz',
+            "149": '149 Frecuencia 5745 MHz',
+            "153": '153 Frecuencia 5765 MHz',
+            "157": '157 Frecuencia 5785 MHz',
+            "161": '161 Frecuencia 5805 MHz',
+            "165": '165 Frecuencia 5825 MHz'
+        }
+        
+        for linea in lineas_1:
+            if "SSID" in linea and "BSSID" not in linea:
+                if red:
+                    lista.append(red)
+                    red = {}
+                if linea.split(":",1)[1].strip() == "":
+                    red["SSID"] = "Red Oculta"
+                else:
+                    red["SSID"] = linea.split(":",1)[1].strip()
+            elif "Signal" in linea:
+                red["Intensidad"] = linea.split(":",1)[1].strip()
+            elif "Channel            " in linea:
+                try:
+                    red["Canal"] = canales_rango_4G[str(linea.split(":",1)[1].split()[0])]
+                except:
+                    try:
+                        red["Canal"] = canales_rango_5G[str(linea.split(":",1)[1].split()[0])]
+                    except:
+                        red["Canal"] = str(linea.split(":",1)[1].split()[0])
+                        
+            elif "Band" in linea:
+                red["Banda"] = linea.split(":",1)[1].split()[0]
+            elif "Authentication" in linea:
+                red["Seguridad"] = linea.split(":",1)[1].split()[0]
+            elif "BSSID 1" in linea:
+                red["MAC"] = linea.split(":",1)[1].split()[0]
+            elif "Radio type" in linea:
+                try:
+                    red['Wi-fi'] = radio_tipos[linea.split(":",1)[1].split()[0]]
+                except Exception:
+                    red["Wi-fi"] = "Error"
+        if red:
+            lista.append(red)
+        return lista
+    
+    def wifi_datos_linux(self):
+        pass
+        
 if __name__ == '__main__':
-
     app = QApplication(sys.argv)
     ventana = OptiNet()
     sys.exit(app.exec())
