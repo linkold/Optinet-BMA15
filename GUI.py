@@ -1,9 +1,11 @@
+
 import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, 
                             QHBoxLayout, QLabel, QStackedWidget, QSizePolicy, QTableWidget, 
-                            QTableWidgetItem, QHeaderView, QMessageBox,QGroupBox,QPlainTextEdit,QListWidget,QLineEdit)
+                            QTableWidgetItem, QHeaderView, QMessageBox,QGroupBox,QPlainTextEdit,QListWidget,QLineEdit,QErrorMessage)
 from PyQt6.QtGui import QFont, QAction
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
+import json
 #import platform
 #import netifaces
 import psutil
@@ -22,16 +24,17 @@ import os
 
 cantidad_dispositivos = 0
 dispositivos = []  
-estado = ""
 ip_adaptador = ""
 ip_escaneadas = []  # Variable global para almacenar todas las IPs escaneadas
+datos_wifi = ""
 class OptiNet(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"OptiNet -- {estado}")
+        self.setWindowTitle("OptiNet")
         self.setMinimumSize(1280, 800)
         self.UI()
         self.show()
+        self.Comprobar()
         self.actualizador()
     def UI(self):
         menu = self.menuBar()
@@ -315,7 +318,7 @@ class OptiNet(QMainWindow):
         self.tabla1.setColumnCount(7)
         self.tabla1.setHorizontalHeaderLabels(["SSID","Intensidad de señal","Canal","Banda","Tipo de Seguridad","Direccion MAC","tipo Wi-Fi"])
 
-        red1 = datos_variantes.wifi_datos_windows()
+        red1 = datos_variantes.wifi_datos_windows(self)
         self.tabla1.setRowCount(len(red1))
         for linea, red in enumerate(red1):
             self.tabla1.setItem(linea, 0, QTableWidgetItem(red.get("SSID", "Desconocido")))
@@ -381,7 +384,7 @@ class OptiNet(QMainWindow):
         laymain.addLayout(layoutH1,3)
         laymain.addLayout(layoutH2, 2)
         lay1.addLayout(laymain)
-        datos_variantes.wifi_datos_windows()
+        datos_variantes.wifi_datos_windows(self)
         return pagina
     
     def ancho_banda(self):
@@ -509,13 +512,14 @@ class OptiNet(QMainWindow):
         timer.start(1000)
         
     def actualizar_informacion(self):
+        ###########################################  Memoria Ram  #####################################################################
         mem = psutil.virtual_memory()
         self.ram_usada = round(mem.used / (1024 ** 3), 2)
         self.Ram_uso_label.setText(f"Usada: {self.ram_usada} GB")
-        
+        #############################################  CPU  ###########################################################################
         self.cpu_uso = psutil.cpu_percent(interval=0.1)
         self.Cpu_uso_label.setText(f"Uso actual: {self.cpu_uso}%")
-        
+        #######################################  Almacenamiento Disco #################################################################
         disco_total = 0
         for part in psutil.disk_partitions():
             try:
@@ -524,6 +528,7 @@ class OptiNet(QMainWindow):
             except Exception:
                 pass
         self.disco_total_label = QLabel(f"Total: {round(disco_total / (1024 ** 3), 2)} GB")
+        #########################################  Bateria  ###########################################################################
         try:
             bateria = psutil.sensors_battery()
             self.bateria_porcentaje_label.setText(f"Porcentaje: {bateria.percent}%")
@@ -531,18 +536,17 @@ class OptiNet(QMainWindow):
             self.internet_estado_label.setText("No esta Conectado\na Internet ❌")
         except Exception:
             pass
+        #######################################  Conectividad  ########################################################################
         if datos_variantes.conectado():
             self.estado_internet.setText("Esta Conectado\na internet ✅")
             self.internet_estado_label.setText("Conectado a\nInternet ✅")
         else:
             self.estado_internet.setText("No esta Conectado\na internet ❌")
             self.internet_estado_label.setText("No esta Conectado\na Internet ❌")
-            
-        red1 = datos_variantes.wifi_datos_windows()
+        ###########################################  WiFI  ############################################################################
+        red1 = datos_variantes.wifi_datos_windows(self)
         self.tabla1.setRowCount(len(red1))
-        self.cantidad_2_4g = 0
-        self.cantidad_5g = 0
-        self.wifi_5_6 = 0
+        self.cantidad_2_4g,self.cantidad_5g,self.wifi_5_6 = 0
         for linea, red in enumerate(red1):
             self.tabla1.setItem(linea, 0, QTableWidgetItem(red["SSID"]))
             self.tabla1.setItem(linea, 1, QTableWidgetItem(str(red["Intensidad"])))
@@ -578,21 +582,28 @@ class OptiNet(QMainWindow):
         
         for i, v in enumerate(intensidades):
             self.x1.text(v + 1, i, f"{v}%", va='center', color='white')
-        
         self.label1_1.setText(f"Redes Detectadas: {len(red1)}")
-        
+        ############################################################  Grafica CPU  ####################################################
         self.y_cpu = self.y_cpu[1:] + [self.cpu_uso]  # desliza los valores
         self.curva1.setData(self.x, self.y_cpu)
         wifi = pywifi.PyWiFi()
         iface = wifi.interfaces()[0]
         iface.scan()
-        
+        #########################################################  Grafica Ram  #######################################################
         ram_usada_porcentaje = (self.ram_usada*100)/self.ram_total
         self.y_ram = self.y_ram[1:] + [ram_usada_porcentaje]  # desliza los valores
         self.curva2.setData(self.x, self.y_ram)
-        
-        
-        
+        ###############################################################################################################################
+    def Comprobar(self):
+        global datos_wifi
+        try:
+            with open("Datos.json","r") as file:
+                datos_wifi = json.load(file)
+        except FileNotFoundError:
+            error_dialog = QErrorMessage(self)
+            error_dialog.showMessage("¡Ocurrió un error! No se encontró el archivo.\nFalta el archivo Datos.json todavia no subido al git :3")
+            error_dialog.exec()
+            self.close()
 
 class datos_variantes:
     
@@ -603,67 +614,12 @@ class datos_variantes:
         except Exception:
             return False  
         
-    def wifi_datos_windows():
+    def wifi_datos_windows(pagina):
+        global datos_wifi
         resultado = subprocess.check_output("netsh wlan show networks mode=bssid", shell=True).decode("utf-8",errors="ignore")
         lineas_1 = resultado.split("\n")
-        
         lista = []
         red = {}
-        
-        radio_tipos = {
-        "802.11a": "Wi-Fi 1",
-        "802.11b": "Wi-Fi 1",
-        "802.11g": "Wi-Fi 3",
-        "802.11n": "Wi-Fi 4",
-        "802.11ac": "Wi-Fi 5",
-        "802.11ax": "Wi-Fi 6",
-        "802.11be": "Wi-Fi 7"
-        }
-        canales_rango_4G = {
-            "1": "1 Rango(2401 MHz - 2423 MHz)",
-            "2": "2 Rango(2406 MHz - 2428 MHz)",
-            "3": "3 Rango(2411 MHz - 2433 MHz)",
-            "4": "4 Rango(2416 MHz - 2438 MHz)",
-            "5": "5 Rango(2421 MHz - 2443 MHz)",
-            "6": "6 Rango(2426 MHz - 2448 MHz)",
-            "7": "7 Rango(2431 MHz - 2453 MHz)",
-            "8": "8 Rango(2436 MHz - 2458 MHz)",
-            "9": "9 Rango(2441 MHz - 2463 MHz)",
-            "10": "10 Rango(2446 MHz - 2468 MHz)",
-            "11": "11 Rango(2451 MHz - 2473 MHz)",
-            "12": "12 Rango(2456 MHz - 2478 MHz)",
-            "13": "13 Rango(2461 MHz - 2483 MHz)",
-            "14": "14 Rango(2473 MHz - 2495 MHz)"
-        }
-
-        canales_rango_5G = {
-            "36": '36 Frecuencia 5180 MHz',
-            "40": '40 Frecuencia 5200 MHz',
-            "44": '44 Frecuencia 5220 MHz',
-            "48": '48 Frecuencia 5240 MHz',
-            "52": '52 Frecuencia 5260 MHz',
-            "56": '56 Frecuencia 5280 MHz',
-            "60": '60 Frecuencia 5300 MHz',
-            "64": '64 Frecuencia 5320 MHz',
-            "100": '100 Frecuencia 5500 MHz',
-            "104": '104 Frecuencia 5520 MHz',
-            "108": '108 Frecuencia 5540 MHz',
-            "112": '112 Frecuencia 5560 MHz',
-            "116": '116 Frecuencia 5580 MHz',
-            "120": '120 Frecuencia 5600 MHz',
-            "124": '124 Frecuencia 5620 MHz',
-            "128": '128 Frecuencia 5640 MHz',
-            "132": '132 Frecuencia 5660 MHz',
-            "136": '136 Frecuencia 5680 MHz',
-            "140": '140 Frecuencia 5700 MHz',
-            "144": '144 Frecuencia 5720 MHz',
-            "149": '149 Frecuencia 5745 MHz',
-            "153": '153 Frecuencia 5765 MHz',
-            "157": '157 Frecuencia 5785 MHz',
-            "161": '161 Frecuencia 5805 MHz',
-            "165": '165 Frecuencia 5825 MHz'
-        }
-        
         for linea in lineas_1:
             if "SSID" in linea and "BSSID" not in linea:
                 if red:
@@ -677,13 +633,12 @@ class datos_variantes:
                 red["Intensidad"] = linea.split(":",1)[1].strip()
             elif "Channel       " in linea or "Canal        " in linea:
                 try:
-                    red["Canal"] = canales_rango_4G[linea.split(":",1)[1].split()[0]]
+                    red["Canal"] = datos_wifi["canales_rango_2.4G"][linea.split(":",1)[1].split()[0]]
                 except:
                     try:
-                        red["Canal"] = canales_rango_5G[str(linea.split(":",1)[1].split()[0])]
+                        red["Canal"] = datos_wifi["canales_rango_5G"][str(linea.split(":",1)[1].split()[0])]
                     except:
                         red["Canal"] = str(linea.split(":",1)[1].split()[0])
-                        
             elif "Band" in linea or "Banda" in linea:
                 red["Banda"] = str(linea.split(":",1)[1].split()[0])
             elif "Authentication" in linea or "Autenticación" in linea:
@@ -692,14 +647,17 @@ class datos_variantes:
                 red["MAC"] = linea.split(":",1)[1].split()[0]
             elif "Radio type" in linea or "Tipo de radio" in linea:
                 try:
-                    red['Wi-fi'] = radio_tipos[linea.split(":",1)[1].split()[0]]
+                    red['Wi-fi'] = datos_wifi["radio_tipos"][linea.split(":",1)[1].split()[0]]
                 except Exception:
                     red["Wi-fi"] = "Error"
         if red:
             lista.append(red)
         return lista
-    
+        
+
     def wifi_datos_linux(self):
+        """Integracion con linux 
+        el codigo previo solo sirve para windows"""
         pass
         
 if __name__ == '__main__':
