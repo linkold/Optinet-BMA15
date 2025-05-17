@@ -101,12 +101,56 @@ class Datos:
         
         return diagnostico_total
 
+from urllib.parse import urlparse
 
-print(Datos.analizar_sistema()[0])
-print(Datos.analizar_sistema()[1])
-print(Datos.analizar_sistema()[2])
+class Control_Parental:
+    def __init__(self):
+        self.Web_whitelist = []
+        self.Web_blacklist = []
+        self.hosts_path = r"C:\Windows\System32\drivers\etc\hosts"
+        self.redirect_ip = "127.0.0.1"
+
+    def limpiar_url(self, url):
+        """Extrae el dominio de la URL y lo normaliza."""
+        parsed = urlparse(url)
+        dominio = parsed.netloc or parsed.path
+        return dominio.strip().lower().replace('/', '')
+
+    def agregar_blacklist(self, web_url):
+        dominio = self.limpiar_url(web_url)
+        if dominio not in self.Web_blacklist:
+            self.Web_blacklist.append(dominio)
+
+            try:
+                with open(self.hosts_path, "r+") as file:
+                    contenido = file.read()
+                    if dominio not in contenido:
+                        file.write(f"{self.redirect_ip} {dominio}\n")
+            except PermissionError:
+                print("Permiso denegado: ejecuta como administrador.")
+            except Exception as e:
+                print(f"Error al bloquear: {e}")
+
+    def quitar_blacklist(self, web_url):
+        dominio = self.limpiar_url(web_url)
+        try:
+            if dominio in self.Web_blacklist:
+                self.Web_blacklist.remove(dominio)
+
+            with open(self.hosts_path, 'r+') as file:
+                lineas = file.readlines()
+                file.seek(0)
+                for linea in lineas:
+                    if dominio not in linea:
+                        file.write(linea)
+                file.truncate()
+        except PermissionError:
+            print("Permiso denegado: ejecuta como administrador.")
+        except Exception as e:
+            print(f"Error al desbloquear: {e}")
+
+
 class datos_variantes:
-    
     def conectado():
         try:
             salida = subprocess.run(["ping", "-n", "1", "google.com"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=2)
