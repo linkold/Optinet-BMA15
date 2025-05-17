@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import socket
 import os
 
-from Pricipal import Datos, datos_variantes
+from Pricipal import Datos, datos_variantes,Control_Parental
 cantidad_dispositivos = 0
 dispositivos = []  
 ip_adaptador = ""
@@ -547,41 +547,58 @@ class OptiNet(QMainWindow):
         pagina = QWidget()
         lay1 = QVBoxLayout(pagina)
         titulo = QLabel("Control Parental")
+        lay3 = QHBoxLayout()
+        
         self.lista = QListWidget()
         label1_2 = QLabel("Agregar sitio Web")
         web_bloqueo = QLineEdit()
+        control = Control_Parental()
         
         def agregar(web):
-            self.lista.addItem(web)
-            
+            if web.strip() != "":
+                self.lista.addItem(web)
+                control.agregar_blacklist(web)
+                QMessageBox.information(self, "Éxito", "Sitio bloqueado correctamente.")
+            else:
+                QMessageBox.warning(self, "Advertencia", "Ingrese un sitio válido.")
+        
         def eliminar():
-            elemento = self.lista.selectedItems()
-            if elemento:
-                for item in elemento:
+            elementos = self.lista.selectedItems()
+            if elementos:
+                for item in elementos:
+                    web = item.text()
                     self.lista.takeItem(self.lista.row(item))
+                    control.quitar_blacklist(web)
+                QMessageBox.information(self, "Éxito", "Sitio(s) desbloqueado(s) correctamente.")
         
         lay2 = QHBoxLayout()
-        boton_agregar = QPushButton("Agregar")
+        boton_Agregar = QPushButton("Agregar")
         boton_Eliminar = QPushButton("Eliminar")
-        boton_agregar.clicked.connect(lambda: agregar(web_bloqueo.text()))
+        boton_Agregar.clicked.connect(lambda: agregar(web_bloqueo.text()))
         boton_Eliminar.clicked.connect(eliminar)
+        
+        lay3.addWidget(boton_Agregar)
+        lay3.addWidget(boton_Eliminar)
+        boton_Agregar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        boton_Eliminar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         lay2.addWidget(label1_2)
         lay2.addWidget(web_bloqueo)
-        titulo.setFont(QFont("Arial",20))
-        lay1.addWidget(titulo)
-        lay1.addWidget(self.lista)
-        lay1.addLayout(lay2)
-        lay1.addWidget(boton_agregar)
-        lay1.addWidget(boton_Eliminar)
+        titulo.setFont(QFont("Arial", 20))
+        
+        lay1.addWidget(titulo, 1)
+        lay1.addWidget(self.lista, 9)
+        lay1.addLayout(lay2, 2)
+        lay1.addLayout(lay3, 1)
         
         return pagina
+
     def actualizar_tabla_dispositivos(self):
         pass
     def actualizador(self):
         timer = QTimer(self)
         timer.timeout.connect(self.actualizar_informacion)
-        timer.start(1700)
+        timer.start(10000)
     def actualizar_informacion(self):
         ##############Informacion
         self.label_info.setText(Datos.analizar_sistema()[0])
