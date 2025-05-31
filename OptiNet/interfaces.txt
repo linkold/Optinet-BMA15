@@ -1,0 +1,12 @@
+Source   Index  Name                                       MAC                IPv4            IPv6                                   
+libpcap  1      Software Loopback Interface 1              00:00:00:00:00:00  127.0.0.1       ::1                                    
+libpcap  10     Microsoft Wi-Fi Direct Virtual Adapter #2  2a:df:eb:23:dd:0e  169.254.67.78   fe80::cad7:3e2d:ef03:30ed              
+                                                                              192.168.137.1                                          
+libpcap  15     WAN Miniport (IP)                                                                                                    
+libpcap  18     WAN Miniport (IPv6)                                                                                                  
+libpcap  20     Microsoft Wi-Fi Direct Virtual Adapter     Intel:23:dd:0f     169.254.254.77  fe80::4f9c:dcb0:5d2f:db09              
+libpcap  6      WAN Miniport (Network Monitor)                                                                                       
+libpcap  9      Intel(R) Wireless-AC 9560 160MHz           Intel:23:dd:0e     192.168.18.23   2803:a3e0:14e3:74c0:dcc4:468e:49c6:77c2
+                                                                                              fe80::ecc6:5b19:952c:f159              
+                                                                                              2803:a3e0:14e3:74c0::1                 
+                                                                                              2803:a3e0:14e3:74c0:338e:7cf0:ee44:6e15
