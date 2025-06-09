@@ -1,5 +1,7 @@
-pyqt6
-python-nmap
-psutil
-scapy
-netifaces
+pip install PyQt6
+pip install scapy
+pip install ping3
+pip install psutil
+pip install matplotlib
+pip install pyqtgraph
+pip install pywifi
