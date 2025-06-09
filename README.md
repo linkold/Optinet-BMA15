@@ -17,5 +17,5 @@ El sistema ofrecerá herramientas especializadas para recopilar información cla
 1. Callupe Menejes Camilo Roger
 2. Chagua Bustos Lincoln Haziel
 3. Gamarra Cruz Diego Orlando
-4. Suica Rojas Victor Manuel
+4. Suica Rojas Victor Manuel (No hizo nada XdxdDxddxd)
    
