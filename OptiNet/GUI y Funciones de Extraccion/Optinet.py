@@ -10,6 +10,9 @@ import os
 from Cond import Datos, Control_Parental, datos_variantes
 from Trafico import SnifferWidget
 from IDS import RedMonitorWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget
+from Banda import BandaWidget
+
 import ctypes
 import platform
 
@@ -26,7 +29,7 @@ class OptiNet(QMainWindow):
         self.actualizador()
     def ui(self):
         menu = self.menuBar()
-        menu.setStyleSheet("background-color:white;")
+        menu.setStyleSheet("background-color:black;")
 
         menu_ayuda = menu.addMenu("Ayuda")
         menu_config = menu.addMenu("Configuracion")
@@ -60,7 +63,6 @@ class OptiNet(QMainWindow):
         
         boton_principal = Boton("Inicio")
         boton_trafico = Boton("Trafico en Tiempo Real")
-        boton_dispositivos = Boton("Dispositivos")
         boton_wifi = Boton("Wi-Fi")
         boton_ancho_banda = Boton("Ancho de Banda")
         boton_reporte = Boton("Reportes")
@@ -69,7 +71,6 @@ class OptiNet(QMainWindow):
         
         barra_lat.addWidget(boton_principal)
         barra_lat.addWidget(boton_trafico)
-        barra_lat.addWidget(boton_dispositivos)
         if Datos.adaptador():
             barra_lat.addWidget(boton_wifi)
         barra_lat.addWidget(boton_ancho_banda)
@@ -81,7 +82,6 @@ class OptiNet(QMainWindow):
         self.stack = QStackedWidget()
         self.pagina_principal = self.principal()
         self.pagina_trafico = self.trafico()
-        self.pagina_dispositivos = self.dispositivos()
         if Datos.adaptador():
             self.pagina_wifi = self.wifi()
         else:
@@ -90,12 +90,11 @@ class OptiNet(QMainWindow):
         self.pagina_reporte = self.reporte()
         self.pagina_control_parental = self.control_parental()
         self.pagina_segurirad = self.seguridad()
-        for pagina in [self.pagina_principal, self.pagina_trafico, self.pagina_dispositivos, self.pagina_wifi, self.pagina_ancho_banda, self.pagina_reporte, self.pagina_control_parental,self.pagina_segurirad]:
+        for pagina in [self.pagina_principal, self.pagina_trafico, self.pagina_wifi, self.pagina_ancho_banda, self.pagina_reporte, self.pagina_control_parental,self.pagina_segurirad]:
             self.stack.addWidget(pagina)
         
         boton_principal.clicked.connect(lambda: self.stack.setCurrentWidget(self.pagina_principal))
         boton_trafico.clicked.connect(lambda: self.stack.setCurrentWidget(self.pagina_trafico))
-        boton_dispositivos.clicked.connect(lambda: self.stack.setCurrentWidget(self.pagina_dispositivos))
         if Datos.adaptador():
             boton_wifi.clicked.connect(lambda: self.stack.setCurrentWidget(self.pagina_wifi))
         boton_ancho_banda.clicked.connect(lambda: self.stack.setCurrentWidget(self.pagina_ancho_banda))
@@ -248,9 +247,6 @@ class OptiNet(QMainWindow):
         return pagina
     def trafico(self):
         return SnifferWidget()
-    def dispositivos(self):
-        pagina = QWidget()
-        return pagina
     def seguridad(self):
         return RedMonitorWidget()
 
@@ -327,12 +323,13 @@ class OptiNet(QMainWindow):
         laymain.addLayout(layoutH2, 2)
         lay1.addLayout(laymain)
         return pagina
+    
     def ancho_banda(self):
-        pagina = QWidget()
-        return pagina
+        return BandaWidget()
     def reporte(self):
         pagina = QWidget()
         return pagina
+    
     def control_parental(self):
         pagina = QWidget()
         lay1 = QVBoxLayout(pagina)
