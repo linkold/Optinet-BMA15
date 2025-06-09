@@ -1,5 +1,3 @@
 #Comando de instalacion de dependencias 
 
 pip install -r requirements.txt
-
-AVISO: Es necesario la instalacion de Nmap para el funcionamiento de la app (Puede Encontrarlo en este repositorio o puede descargarlo desde https://nmap.org/download.html )
