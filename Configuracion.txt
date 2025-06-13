@@ -1,0 +1,22 @@
+Puerto eth0
+	IP_Estatica = 192.168.10.10
+Puerto wlan0 (Access Point)
+	Rango IP = 192.168.4.10 - 192.168.4.100
+			255.255.255.0
+			192.168.4.1
+Servidor HTPPS
+	alojado en 
+		htpps://192.168.10.10:4443
+		htpps://127.0.0.1:4443
+Servicios de Inicializacion del servidor HTPPS
+	Direccion
+		/etc/systemd/system/infor.service
+		/etc/systemd/system/servido_https.service
+	Estatus
+		sudo systemctl status infor.service
+		sudo systemctl status servido_https.service
+
+#Configuracion Adicional para activar el AP en el raspberry 
+	
+
+	  
