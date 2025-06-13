@@ -9,13 +9,12 @@ El sistema ofrecerá herramientas especializadas para recopilar información cla
 1. Análisis de tráfico en tiempo real
 2. Monitor de ancho de banda por dispositivo
 3. Detector de dispositivos "fantasma" en la red
-4. Sistema de detección de ataques (IDS básico)
-5. Bot de auto-diagnóstico de red
-6. Analizador de Wi-Fi (canales, señal, interferencias)
+4. Bot de auto-diagnóstico de red
+5. Analizador de Wi-Fi (canales, señal, interferencias)
    
 # ****Participantes:****
-1. Callupe Menejes Camilo Roger
-2. Chagua Bustos Lincoln Haziel
-3. Gamarra Cruz Diego Orlando
-4. Suica Rojas Victor Manuel (No hizo nada XdxdDxddxd)
+1. Callupe Menejes Camilo Roger                        -> [camilo.callupe.m@uni.pe]
+2. Chagua Bustos Lincoln Haziel                        -> [lincoln.chagua.b@uni.pe]
+3. Gamarra Cruz Diego Orlando                          -> [diego.gamarra.c@uni.pe]
+4. Suica Rojas Victor Manuel (No hizo nada XdxdDxddxd) -> [victor.suica.r@uni.pe]
    
