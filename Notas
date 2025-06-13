@@ -1,8 +1,9 @@
 (Fraccionamiento del codigo):
-    - Main
     - GUI
     - Logica y Metodos
     - Recursos 
+    - Codigos Raspberry
+    - Configuracion Raspberry
 (Optimizacion del Codigo):
     - Eliminar redudancia 
     - Eliminar lineas inesesarias 
