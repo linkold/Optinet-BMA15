@@ -1,4 +1,4 @@
-# Grupo-4-POO
+# Optinet
 # Tema: 
 Analsis de Red y del Computador
 # Objetivos Principales:
