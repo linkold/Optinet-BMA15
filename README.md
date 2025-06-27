@@ -8,9 +8,8 @@ El sistema ofrecerá herramientas especializadas para recopilar información cla
 # Objetivos Secundarios:
 1. Análisis de tráfico en tiempo real
 2. Monitor de ancho de banda por dispositivo
-3. Detector de dispositivos "fantasma" en la red
-4. Bot de auto-diagnóstico de red
-5. Analizador de Wi-Fi (canales, señal, interferencias)
+3. Detector de dispositivos "fantasma y sospechosos" en la red
+4. Analizador de Wi-Fi (canales, señal, interferencias)
    
 # ****Participantes:****
 1. Callupe Menejes Camilo Roger                        -> [camilo.callupe.m@uni.pe]
