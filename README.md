@@ -16,5 +16,5 @@ El sistema ofrecerá herramientas especializadas para recopilar información cla
 1. Callupe Menejes Camilo Roger                        -> [camilo.callupe.m@uni.pe]
 2. Chagua Bustos Lincoln Haziel                        -> [lincoln.chagua.b@uni.pe]
 3. Gamarra Cruz Diego Orlando                          -> [diego.gamarra.c@uni.pe]
-4. Suica Rojas Victor Manuel (No hizo nada XdxdDxddxd) -> [victor.suica.r@uni.pe]
+4. Suica Rojas Victor Manuel                           -> [victor.suica.r@uni.pe]
    
