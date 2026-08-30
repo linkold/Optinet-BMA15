@@ -205,6 +205,8 @@ def asegurar_admin():
             )
 
 if __name__ == "__main__":
+    if "wayland" in os.environ.get("QT_QPA_PLATFORM", ""):
+        os.environ["QT_QPA_PLATFORM"] = "xcb"
     asegurar_admin()
     app = QApplication(sys.argv)
     if Login().exec():
