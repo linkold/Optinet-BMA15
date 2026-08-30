@@ -1,7 +1,12 @@
-pip install PyQt6
-pip install scapy
-pip install ping3
-pip install psutil
-pip install matplotlib
-pip install pyqtgraph
-pip install pywifi
+scapy
+ping3
+psutil
+matplotlib
+pyqtgraph
+pywifi
+PyQt6
+paramiko
+transformers
+requests
+urllib3
+flask
