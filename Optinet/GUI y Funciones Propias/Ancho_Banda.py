@@ -5,10 +5,31 @@ import urllib3
 from PyQt6.QtWidgets import (
     QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QLabel,QHeaderView
 )
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QTimer, QThread, pyqtSignal
 
 # Desactiva advertencias de certificado si es autofirmado
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+class DescargarDatosWorker(QThread):
+    datos_obtenidos = pyqtSignal(list)
+    error = pyqtSignal(str)
+
+    def run(self):
+        try:
+            url = "https://192.168.10.10:4443/descargar"
+            respuesta = requests.get(url, verify=False, timeout=5)
+
+            with open("datos_tmp.pkl", "wb") as f:
+                f.write(respuesta.content)
+
+            with open("datos_tmp.pkl", "rb") as f:
+                datos = pickle.load(f)
+
+            self.datos_obtenidos.emit(datos)
+        except Exception as e:
+            self.error.emit(str(e))
+
 
 class TablaMonitor(QWidget):
     def __init__(self):
@@ -23,26 +44,35 @@ class TablaMonitor(QWidget):
         layout.addWidget(self.tabla)
         self.setLayout(layout)
 
+        self._workers = []
+        self._en_descarga = False
         self.timer = QTimer()
         self.timer.timeout.connect(self.actualizar_tabla)
-        self.timer.start(500)  # cada 1 segundos
+        self.timer.start(500)  # cada 0,5 segundos
         self.actualizar_tabla()
 
     def actualizar_tabla(self):
-        try:
-            url = "https://192.168.10.10:4443/descargar"
-            respuesta = requests.get(url, verify=False, timeout=5)
+        if self._en_descarga:
+            return
+        self._en_descarga = True
 
-            with open("datos_tmp.pkl", "wb") as f:
-                f.write(respuesta.content)
+        worker = DescargarDatosWorker()
+        worker.datos_obtenidos.connect(self._mostrar_exito)
+        worker.error.connect(self._mostrar_error)
+        worker.finished.connect(self._worker_terminado)
+        worker.finished.connect(worker.deleteLater)
+        self._workers.append(worker)
+        worker.start()
 
-            with open("datos_tmp.pkl", "rb") as f:
-                datos = pickle.load(f)
+    def _worker_terminado(self):
+        self._en_descarga = False
 
-            self.label_estado.setText("Última actualización exitosa.")
-            self.mostrar_tabla(datos)
-        except Exception as e:
-            self.label_estado.setText(f"Error al obtener datos: {e}")
+    def _mostrar_error(self, mensaje):
+        self.label_estado.setText(f"Error al obtener datos: {mensaje}")
+
+    def _mostrar_exito(self, datos):
+        self.label_estado.setText("Última actualización exitosa.")
+        self.mostrar_tabla(datos)
 
     def mostrar_tabla(self, datos):
         columnas = ["IP", "MAC", "Estado", "Tiempo de conexión (s)", "Tráfico (kbps)"]

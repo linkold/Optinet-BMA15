@@ -192,7 +192,17 @@ def asegurar_admin():
             sys.exit()
     else:
         if os.geteuid() != 0:
-            os.execvp("sudo", ["sudo", "python3"] + sys.argv)
+            sudo_cmd = "sudo"
+            env = dict(os.environ)
+            env["XAUTHORITY"] = env.get("XAUTHORITY", os.path.expandvars("$HOME/.Xauthority"))
+            if "DISPLAY" not in env:
+                env["DISPLAY"] = ":0"
+            env["PYTHONPATH"] = os.path.dirname(os.path.abspath(__file__))
+            os.execve(
+                sudo_cmd,
+                ["sudo", "-E", sys.executable] + sys.argv,
+                env,
+            )
 
 if __name__ == "__main__":
     asegurar_admin()

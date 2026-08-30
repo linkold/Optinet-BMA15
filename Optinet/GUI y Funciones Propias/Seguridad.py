@@ -6,6 +6,25 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
     QLabel, QPushButton, QHBoxLayout, QGroupBox, QHeaderView, QMessageBox
 )
+from PyQt6.QtCore import QThread, pyqtSignal
+
+
+class CargarDatosWorker(QThread):
+    datos_listos = pyqtSignal(str, list)
+
+    def __init__(self, api_base, endpoint, campos):
+        super().__init__()
+        self.api_base = api_base
+        self.endpoint = endpoint
+        self.campos = campos
+
+    def run(self):
+        try:
+            response = requests.get(f"{self.api_base}/{self.endpoint}", timeout=3)
+            if response.status_code == 200:
+                self.datos_listos.emit(self.endpoint, response.json())
+        except Exception:
+            self.datos_listos.emit(self.endpoint, [])
 
 
 class SeguridadWidget(QWidget):
@@ -15,9 +34,12 @@ class SeguridadWidget(QWidget):
         self.setWindowTitle("Seguridad IDS/IPS")
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
+        self._workers = []
 
         self.init_botones_control()
         self.init_tablas()
+
+        self.refrescar()
 
     def init_botones_control(self):
         grupo = QGroupBox("Controles de Captura")
@@ -60,27 +82,29 @@ class SeguridadWidget(QWidget):
         self.layout.addWidget(QLabel("Alertas IDS Recientes"))
         self.layout.addWidget(self.tabla_alertas)
 
-        # Cargar datos al iniciar
-        self.cargar_datos()
+    def refrescar(self):
+        self._datos_async("dispositivos", self.tabla_dispositivos, ["ip", "mac"])
+        self._datos_async("sospechosos", self.tabla_sospechosos, ["ip", "mac"])
+        self._datos_async("alertas", self.tabla_alertas, ["hora", "tipo", "detalle"])
+
+    def _datos_async(self, endpoint, tabla, campos):
+        worker = CargarDatosWorker(self.api_base, endpoint, campos)
+        worker.datos_listos.connect(lambda ep, datos: self._llenar_tabla(tabla, campos, datos))
+        worker.finished.connect(worker.deleteLater)
+        self._workers.append(worker)
+        worker.start()
+
+    def _llenar_tabla(self, tabla, campos, datos):
+        tabla.setRowCount(len(datos))
+        for i, item in enumerate(datos):
+            for j, campo in enumerate(campos):
+                tabla.setItem(i, j, QTableWidgetItem(str(item.get(campo, ""))))
 
     def cargar_datos(self):
-        self.cargar_tabla("dispositivos", self.tabla_dispositivos, ["ip", "mac"])
-        self.cargar_tabla("sospechosos", self.tabla_sospechosos, ["ip", "mac"])
-        self.cargar_tabla("alertas", self.tabla_alertas, ["hora", "tipo", "detalle"])
+        self.refrescar()
 
     def cargar_tabla(self, endpoint, tabla, campos):
-        try:
-            response = requests.get(f"{self.api_base}/{endpoint}", timeout=5)
-            if response.status_code == 200:
-                datos = response.json()
-                tabla.setRowCount(len(datos))
-                for i, item in enumerate(datos):
-                    for j, campo in enumerate(campos):
-                        tabla.setItem(i, j, QTableWidgetItem(str(item.get(campo, ""))))
-            else:
-                QMessageBox.warning(self, "Error", f"Fallo al obtener /{endpoint}: {response.status_code}")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Fallo al obtener /{endpoint}: {e}")
+        self._datos_async(endpoint, tabla, campos)
 
     def enviar_comando(self, accion):
         try:

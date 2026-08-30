@@ -6,7 +6,26 @@ from PyQt6.QtWidgets import (
     QLineEdit, QLabel, QGroupBox, QTableWidget, QTableWidgetItem, QHeaderView,
     QCheckBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+
+
+class BloqueadosWorker(QThread):
+    bloqueados = pyqtSignal(list)
+
+    def __init__(self, api_base):
+        super().__init__()
+        self.api_base = api_base
+
+    def run(self):
+        try:
+            response = requests.get(f"{self.api_base}/bloqueados", timeout=3)
+            if response.status_code == 200:
+                self.bloqueados.emit(response.json())
+            else:
+                self.bloqueados.emit([])
+        except Exception:
+            self.bloqueados.emit([])
+
 
 class IPSWidget(QWidget):
     def __init__(self, raspberry_ip="192.168.10.10", api_port=6001):
@@ -15,6 +34,7 @@ class IPSWidget(QWidget):
         self.setWindowTitle("Panel de Control IDS/IPS")
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
+        self._workers = []
         self.init_ui()
 
     def init_ui(self):
@@ -62,18 +82,17 @@ class IPSWidget(QWidget):
         self.layout.addWidget(self.tabla_bloqueados)
 
     def actualizar_bloqueados(self):
-        try:
-            response = requests.get(f"{self.api_base}/bloqueados", timeout=3)
-            if response.status_code == 200:
-                datos = response.json()
-                self.tabla_bloqueados.setRowCount(len(datos))
-                for i, d in enumerate(datos):
-                    self.tabla_bloqueados.setItem(i, 0, QTableWidgetItem(d["tipo"]))
-                    self.tabla_bloqueados.setItem(i, 1, QTableWidgetItem(d["valor"]))
-            else:
-                QMessageBox.warning(self, "Error", f"No se pudo cargar la lista de bloqueados: {response.status_code}")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Fallo al consultar bloqueados: {e}")
+        worker = BloqueadosWorker(self.api_base)
+        worker.bloqueados.connect(self._mostrar_bloqueados)
+        worker.finished.connect(worker.deleteLater)
+        self._workers.append(worker)
+        worker.start()
+
+    def _mostrar_bloqueados(self, datos):
+        self.tabla_bloqueados.setRowCount(len(datos))
+        for i, d in enumerate(datos):
+            self.tabla_bloqueados.setItem(i, 0, QTableWidgetItem(d["tipo"]))
+            self.tabla_bloqueados.setItem(i, 1, QTableWidgetItem(d["valor"]))
 
     def agregar_opciones_deteccion(self):
         deteccion_group = QGroupBox("Detección Automática")

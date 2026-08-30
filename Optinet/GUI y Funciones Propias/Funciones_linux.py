@@ -8,16 +8,6 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import socket
 import os
-from transformers import pipeline
-
-generator = pipeline("text-generation", model="gpt2")
-
-prompt = "about the beatles"
-output = generator(prompt, max_length=50, num_return_sequences=1)
-
-print(output[0]["generated_text"])
-
-
 class Datos:
     def Memoria_Ram():
         mem = psutil.virtual_memory()
@@ -135,7 +125,7 @@ class datos_variantes:
     def wifi_datos():
         import subprocess, json, os
 
-        ruta_json = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Datos_Configuracion', 'Datos.json')
+        ruta_json = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Datos', 'Datos.json')
         with open(ruta_json, "r") as file:
             datos_wifi = json.load(file)
 
@@ -163,13 +153,13 @@ class datos_variantes:
             ssid = ssid_split[0] if ssid_split[0] else "Red Oculta"
             resto = ssid_split[1]
 
-        # El resto contiene: BSSID:SIGNAL:FREQ:CHAN:SECURITY:DEVICE
-        # Pero BSSID tiene 5 ":" → usar rsplit desde la derecha
+            # El resto contiene: BSSID:SIGNAL:FREQ:CHAN:SECURITY:DEVICE
+            # Pero BSSID tiene 5 ":" → usar rsplit desde la derecha
             partes_restantes = resto.rsplit(":", 6)
             if len(partes_restantes) != 7:
                 continue
 
-            bssid ,bssid1, signal, frecuencia ,canal, seguridad, dispositivo = partes_restantes
+            bssid, bssid1, signal, frecuencia, canal, seguridad, dispositivo = partes_restantes
             try:
                 canal_mapeado = datos_wifi["canales_rango_2.4G"].get(canal,
                                   datos_wifi["canales_rango_5G"].get(canal, canal))
@@ -178,7 +168,7 @@ class datos_variantes:
             bssid_f = bssid + ":" + bssid1
             red = {
             "SSID": ssid,
-            "MAC": bssid_f.replace(r"\:",":"),
+            "MAC": bssid_f.replace(r"\:", ":"),
             "Intensidad": signal + "%",
             "Canal": canal_mapeado,
             "Seguridad": seguridad,
@@ -188,7 +178,3 @@ class datos_variantes:
 
             lista.append(red)
         return lista
-
-#print(datos_variantes.wifi_datos()
-datos_variantes.wifi_datos()
-print(datos_variantes.conectado())
